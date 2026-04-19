@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-8">
+    
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h2 class="text-4xl font-extrabold text-gray-800">Book Your Ride</h2>
+            <p class="text-gray-500 mt-2">Select a service and customize your journey.</p>
+        </div>
+        <button onclick="alert('Complaint system will be built in the Dashboard module!')" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg hover:bg-red-200 transition font-semibold text-sm shadow-sm border border-red-200">
+            ⚠️ File a Complaint
+        </button>
+    </div>
+
+    <form action="/book" method="POST" class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 space-y-8" id="bookingForm">
+        
+        <div>
+            <h3 class="text-xl font-bold text-blue-600 mb-4 border-b pb-2">1. Choose Service</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label class="cursor-pointer">
+                    <input type="radio" name="service_type" value="self_drive" class="peer sr-only" required onchange="updateUI()">
+                    <div class="p-4 rounded-xl border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50 transition text-center">
+                        <span class="block text-2xl mb-2">🚗</span>
+                        <span class="font-bold text-gray-800 block">Self Drive</span>
+                        <span class="text-xs text-gray-500">You drive the vehicle</span>
+                    </div>
+                </label>
+
+                <label class="cursor-pointer">
+                    <input type="radio" name="service_type" value="with_driver" class="peer sr-only" onchange="updateUI()">
+                    <div class="p-4 rounded-xl border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50 transition text-center">
+                        <span class="block text-2xl mb-2">🚕</span>
+                        <span class="font-bold text-gray-800 block">With Driver</span>
+                        <span class="text-xs text-gray-500">Vehicle + Chauffeur</span>
+                    </div>
+                </label>
+
+                <label class="cursor-pointer">
+                    <input type="radio" name="service_type" value="only_driver" class="peer sr-only" onchange="updateUI()">
+                    <div class="p-4 rounded-xl border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50 transition text-center">
+                        <span class="block text-2xl mb-2">👨‍✈️</span>
+                        <span class="font-bold text-gray-800 block">Only Driver</span>
+                        <span class="text-xs text-gray-500">For your own vehicle</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div id="journey_section" class="hidden opacity-0 transition-opacity duration-500">
+            <h3 class="text-xl font-bold text-blue-600 mb-4 border-b pb-2">2. Trip Details</h3>
+            <div class="flex space-x-6 mb-6">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="journey_type" value="a_to_b" class="w-5 h-5 text-blue-600" onchange="updateUI()">
+                    <span class="font-medium text-gray-700">Point A to Point B</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="journey_type" value="duration" class="w-5 h-5 text-blue-600" onchange="updateUI()">
+                    <span class="font-medium text-gray-700">Rent by Duration (Hours/Days)</span>
+                </label>
+            </div>
+
+            <div id="a_to_b_inputs" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Pickup Location (A)</label>
+                    <input type="text" name="pickup_location" id="pickup_location" placeholder="e.g. Airport" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Drop-off Location (B)</label>
+                    <input type="text" name="dropoff_location" id="dropoff_location" placeholder="e.g. Hotel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                </div>
+            </div>
+
+            <div id="duration_inputs" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Rent By</label>
+                    <select name="duration_type" id="duration_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" onchange="calculateFare()">
+                        <option value="hours">Hours</option>
+                        <option value="days">Days</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">How Many?</label>
+                    <input type="number" name="duration_value" id="duration_value" min="1" value="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" oninput="calculateFare()">
+                </div>
+            </div>
+        </div>
+
+        <div id="fare_section" class="hidden bg-green-50 p-6 rounded-xl border border-green-200 flex justify-between items-center">
+            <div>
+                <p class="text-sm text-green-800 font-semibold uppercase tracking-wider">Estimated Fare</p>
+                <p class="text-4xl font-extrabold text-green-600 mt-1">₹<span id="display_fare">0</span></p>
+                <input type="hidden" name="calculated_fare" id="calculated_fare" value="0">
+                <p class="text-xs text-green-700 mt-1" id="fare_note">*Final price may vary based on exact distance/vehicle chosen.</p>
+            </div>
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg transform transition hover:scale-105">
+                Confirm Booking
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    // Base test rates for the dynamic calculator (in ₹)
+    const rates = {
+        self_drive: { hours: 100, days: 2000, flat_a_to_b: 500 },
+        with_driver: { hours: 150, days: 3000, flat_a_to_b: 800 },
+        only_driver: { hours: 60, days: 1000, flat_a_to_b: 300 }
+    };
+
+    function updateUI() {
+        const serviceSelected = document.querySelector('input[name="service_type"]:checked');
+        const journeySelected = document.querySelector('input[name="journey_type"]:checked');
+        
+        const journeySection = document.getElementById('journey_section');
+        const aToBInputs = document.getElementById('a_to_b_inputs');
+        const durationInputs = document.getElementById('duration_inputs');
+        const fareSection = document.getElementById('fare_section');
+
+        // Show Journey section if service is picked
+        if (serviceSelected) {
+            journeySection.classList.remove('hidden');
+            // Small delay for smooth fade in
+            setTimeout(() => journeySection.classList.remove('opacity-0'), 10); 
+        }
+
+        // Toggle input fields based on Journey Type
+        if (journeySelected) {
+            fareSection.classList.remove('hidden');
+            
+            if (journeySelected.value === 'a_to_b') {
+                aToBInputs.classList.remove('hidden');
+                durationInputs.classList.add('hidden');
+                
+                // Clear required tags from hidden fields so form can submit
+                document.getElementById('pickup_location').required = true;
+                document.getElementById('dropoff_location').required = true;
+                document.getElementById('duration_value').required = false;
+            } else {
+                aToBInputs.classList.add('hidden');
+                durationInputs.classList.remove('hidden');
+                
+                document.getElementById('pickup_location').required = false;
+                document.getElementById('dropoff_location').required = false;
+                document.getElementById('duration_value').required = true;
+            }
+            
+            // Calculate price whenever UI changes
+            calculateFare();
+        }
+    }
+
+    function calculateFare() {
+        const service = document.querySelector('input[name="service_type"]:checked')?.value;
+        const journey = document.querySelector('input[name="journey_type"]:checked')?.value;
+        
+        if (!service || !journey) return;
+
+        let finalFare = 0;
+        let note = "";
+
+        if (journey === 'a_to_b') {
+            // Since we don't have GPS distance yet, we use a placeholder flat rate
+            finalFare = rates[service].flat_a_to_b;
+            note = "*Base rate for local A to B transfer. Exact fare calculated at pickup.";
+        } else {
+            const durationType = document.getElementById('duration_type').value;
+            const durationValue = parseInt(document.getElementById('duration_value').value) || 0;
+            
+            finalFare = rates[service][durationType] * durationValue;
+            note = `*Calculated for ${durationValue} ${durationType} at ₹${rates[service][durationType]}/${durationType.slice(0,-1)}.`;
+        }
+
+        // Animate the number change
+        animateValue("display_fare", parseInt(document.getElementById('display_fare').innerText), finalFare, 500);
+        document.getElementById('calculated_fare').value = finalFare;
+        document.getElementById('fare_note').innerText = note;
+    }
+
+    // Fun little animation function for the price rolling up
+    function animateValue(id, start, end, duration) {
+        if (start === end) return;
+        let range = end - start;
+        let current = start;
+        let increment = end > start ? 1 : -1;
+        let stepTime = Math.abs(Math.floor(duration / range));
+        let obj = document.getElementById(id);
+        
+        // Prevent infinite loops if range is huge
+        if(stepTime < 5) stepTime = 5; 
+        let steps = duration / stepTime;
+        increment = range / steps;
+
+        let timer = setInterval(function() {
+            current += increment;
+            if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                current = end;
+                clearInterval(timer);
+            }
+            obj.innerHTML = Math.round(current);
+        }, stepTime);
+    }
+</script>
+{% endblock %}
