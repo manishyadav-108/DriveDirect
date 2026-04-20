@@ -92,4 +92,48 @@
 
     </div>
 </div>
+
+<div class="mt-12 space-y-6">
+        <h3 class="text-2xl font-bold text-slate-800 mb-4 flex items-center border-b pb-2 border-slate-200">
+            🚕 Pending Ride Requests
+            <span class="ml-3 bg-slate-800 text-white text-sm py-1 px-3 rounded-full">{{ bookings|length }}</span>
+        </h3>
+        
+        {% if bookings %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for booking in bookings %}
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 hover:shadow-lg transition">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="px-3 py-1 text-xs font-bold uppercase rounded-full bg-yellow-100 text-yellow-800">
+                            {{ booking.status }}
+                        </span>
+                        <span class="text-lg font-extrabold text-blue-600">₹{{ booking.estimated_fare }}</span>
+                    </div>
+                    
+                    <h4 class="text-lg font-bold text-slate-800 mt-2 uppercase">{{ booking.service_type.replace('_', ' ') }}</h4>
+                    
+                    <div class="text-sm text-slate-600 mt-3 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        {% if booking.journey_type == 'a_to_b' %}
+                            <p><span class="font-semibold text-slate-800">From:</span> {{ booking.pickup_location }}</p>
+                            <p><span class="font-semibold text-slate-800">To:</span> {{ booking.dropoff_location }}</p>
+                        {% else %}
+                            <p><span class="font-semibold text-slate-800">Duration:</span> {{ booking.duration_value }} {{ booking.duration_type }}</p>
+                        {% endif %}
+                        <p class="text-xs text-slate-400 mt-2">Req: {{ booking.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                    
+                    <form action="{{ url_for('confirm_booking', booking_id=booking.id) }}" method="POST" class="mt-4">
+                        <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 px-4 rounded-lg shadow hover:bg-blue-600 transition duration-300">
+                            ✓ Confirm Ride
+                        </button>
+                    </form>
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-slate-50 p-8 rounded-xl text-center border border-slate-100">
+                <p class="text-slate-500 font-medium">No pending ride requests at the moment.</p>
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}

@@ -8,26 +8,15 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = 'super_secret_drivedirect_key'
 
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 # Limits images to 5MB
+# ------------------------------------------
+
 # Database Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:free@localhost/DriveDirect'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Image Upload Configuration
-app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 # Limit to 5MB per image
-
 db = SQLAlchemy(app)
 
-app = Flask(__name__)
-app.secret_key = 'super_secret_drivedirect_key' # Needed for flash messages and sessions
-
-# Database Configuration as per your notes
-# Format: postgresql://username:password@localhost/database_name
-# Assuming default postgres username is 'postgres'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:free@localhost/DriveDirect'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
 
 # ==========================================
 # DATABASE MODELS
@@ -263,6 +252,42 @@ def signup():
 
     return render_template('signup.html')
 
+@app.route('/verify-otp', methods=['GET', 'POST'])
+def verify_otp():
+    # If they refresh or lose session, send them back to signup
+    if 'temp_user' not in session:
+        flash('Session expired. Please sign up again.', 'error')
+        return redirect(url_for('signup'))
+
+    if request.method == 'POST':
+        user_otp = request.form.get('otp')
+
+        if user_otp == session.get('otp'):
+            # OTP is correct! Create the user in the database
+            user_data = session['temp_user']
+            new_user = User(
+                name=user_data['name'],
+                email=user_data['email'],
+                phone=user_data['phone']
+            )
+            db.session.add(new_user)
+            db.session.commit()
+
+            # Clear temporary session data and log them in
+            session.pop('temp_user', None)
+            session.pop('otp', None)
+            
+            session['user_id'] = new_user.id 
+            session['user_name'] = new_user.name
+            session['is_admin'] = new_user.is_admin # Keeps admin status secure
+
+            flash('Account created successfully! Welcome.', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid OTP. Please try again.', 'error')
+
+    return render_template('verify_otp.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -339,7 +364,7 @@ def logout():
 
 @app.route('/admin')
 def admin_panel():
-    # SECURITY CHECK: Must be logged in AND be an admin
+    # SECURITY CHECK
     if 'user_id' not in session:
         flash('Please log in to access the Admin Panel.', 'error')
         return redirect(url_for('login'))
@@ -349,13 +374,27 @@ def admin_panel():
         flash('Access Denied: You do not have admin privileges.', 'error')
         return redirect(url_for('index'))
     
-    # Fetch partners who are NOT yet approved
+    # Fetch Data for Admin
     pending_partners = Partner.query.filter_by(is_approved=False).order_by(Partner.created_at.desc()).all()
-    # Fetch complaints that are still 'Pending'
     active_complaints = Complaint.query.filter_by(status='Pending').order_by(Complaint.created_at.desc()).all()
     
-    return render_template('admin.html', partners=pending_partners, complaints=active_complaints)
+    # NEW: Fetch pending bookings!
+    pending_bookings = Booking.query.filter_by(status='Pending').order_by(Booking.created_at.desc()).all()
+    
+    return render_template('admin.html', partners=pending_partners, complaints=active_complaints, bookings=pending_bookings)
 
+# NEW ROUTE: Confirm Bookings
+@app.route('/admin/confirm-booking/<int:booking_id>', methods=['POST'])
+def confirm_booking(booking_id):
+    if 'user_id' not in session or not User.query.get(session['user_id']).is_admin:
+        return redirect(url_for('index'))
+        
+    booking = Booking.query.get_or_404(booking_id)
+    booking.status = 'Confirmed'
+    db.session.commit()
+    
+    flash(f'Ride for {booking.service_type.replace("_", " ")} has been Confirmed!', 'success')
+    return redirect(url_for('admin_panel'))
 
 @app.route('/admin/approve-partner/<int:partner_id>', methods=['POST'])
 def approve_partner(partner_id):

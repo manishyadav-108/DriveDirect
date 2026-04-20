@@ -5,6 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DriveDirect</title>
     <script src="{{ url_for('static', filename='js/tailwind.js') }}"></script>
+    <script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          // Overriding "blue" to become Premium Maroon
+          blue: {
+            50: '#F9F2F2',
+            100: '#F2E1E1',
+            200: '#E1BDBD',
+            500: '#9C1C1C',
+            600: '#800000', /* True Maroon - used for main buttons & nav */
+            700: '#5E0000', /* Darker Maroon - used for hover effects */
+            800: '#420000',
+          },
+          // Overriding "indigo" to become Luxury Gold
+          indigo: {
+            400: '#FDE047',
+            500: '#FFD700', /* Classic Bright Gold */
+            600: '#D4AF37', /* Metallic Gold - used in gradients */
+            700: '#AA8C2C',
+          },
+          // Warming up the dark slate colors to match the premium vibe
+          slate: {
+            800: '#3A2E2E',
+            900: '#241717', /* Very dark warm-brown/maroon */
+          }
+        }
+      }
+    }
+  }
+</script>
     <style>
         /* Smooth fade-in animation base */
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
