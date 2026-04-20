@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DriveDirect</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ url_for('static', filename='js/tailwind.js') }}"></script>
     <style>
         /* Smooth fade-in animation base */
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
@@ -22,9 +22,17 @@
             <div class="flex items-center space-x-8">
                 <a href="/" class="text-xl font-extrabold text-slate-900 tracking-wide">DriveDirect<span class="text-blue-600">.</span></a>
                 <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-500">
+                    <a href="/" class="hover:text-blue-600 transition">Home</a>
                     <a href="/book" class="hover:text-blue-600 transition">Book Ride</a>
+                    
                     {% if 'user_id' in session %}
                         <a href="/dashboard" class="hover:text-blue-600 transition">Dashboard</a>
+                    {% endif %}
+                    
+                    {% if session.get('is_admin') %}
+                        <a href="/admin" class="text-blue-600 font-bold hover:text-blue-800 transition flex items-center">
+                            <span class="mr-1">🛡️</span> Admin Panel
+                        </a>
                     {% endif %}
                 </div>
             </div>

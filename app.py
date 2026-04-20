@@ -33,12 +33,16 @@ db = SQLAlchemy(app)
 # DATABASE MODELS
 # ==========================================
 
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone = db.Column(db.String(15), unique=True, nullable=False)
-    # OTP and auth fields will be added in the Auth module
+    
+    # NEW: Admin security flag (defaults to False for normal users)
+    is_admin = db.Column(db.Boolean, default=False) 
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Partner(db.Model):
@@ -260,40 +264,6 @@ def signup():
     return render_template('signup.html')
 
 
-@app.route('/verify-otp', methods=['GET', 'POST'])
-def verify_otp():
-    if 'temp_user' not in session:
-        flash('Session expired. Please sign up again.', 'error')
-        return redirect(url_for('signup'))
-
-    if request.method == 'POST':
-        user_otp = request.form.get('otp')
-
-        if user_otp == session.get('otp'):
-            # OTP is correct! Create the user in the database
-            user_data = session['temp_user']
-            new_user = User(
-                name=user_data['name'],
-                email=user_data['email'],
-                phone=user_data['phone']
-            )
-            db.session.add(new_user)
-            db.session.commit()
-
-            # Clear temporary session data and log them in
-            session.pop('temp_user', None)
-            session.pop('otp', None)
-            session['user_id'] = new_user.id # Log the user in
-            session['user_name'] = new_user.name
-
-            flash('Account created successfully! Welcome.', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('Invalid OTP. Please try again.', 'error')
-
-    return render_template('verify_otp.html')
-
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -318,7 +288,6 @@ def login():
 
     return render_template('login.html')
 
-
 @app.route('/verify-login-otp', methods=['GET', 'POST'])
 def verify_login_otp():
     if 'login_email' not in session:
@@ -333,11 +302,21 @@ def verify_login_otp():
             session.pop('login_email', None)
             session.pop('otp', None)
             
+            # Save user details in session
             session['user_id'] = user.id
             session['user_name'] = user.name
             
+            # NEW: Remember if the user is an admin!
+            session['is_admin'] = user.is_admin
+            
             flash('Logged in successfully!', 'success')
-            return redirect(url_for('index'))
+            
+            # NEW: Smart Redirect!
+            if user.is_admin:
+                return redirect(url_for('admin_panel')) # Admins go to the panel
+            else:
+                return redirect(url_for('index')) # Normal users go to home
+                
         else:
             flash('Invalid OTP.', 'error')
 
@@ -354,14 +333,24 @@ def logout():
 # ADMIN PANEL ROUTES
 # ==========================================
 
+# ==========================================
+# ADMIN PANEL ROUTES (SECURED)
+# ==========================================
+
 @app.route('/admin')
 def admin_panel():
-    # SECURITY NOTE: In a real production app, you would check if the logged-in user is an Admin here.
-    # For this local college project, we are keeping the route open so you can easily demo it.
+    # SECURITY CHECK: Must be logged in AND be an admin
+    if 'user_id' not in session:
+        flash('Please log in to access the Admin Panel.', 'error')
+        return redirect(url_for('login'))
+        
+    user = User.query.get(session['user_id'])
+    if not user or not user.is_admin:
+        flash('Access Denied: You do not have admin privileges.', 'error')
+        return redirect(url_for('index'))
     
     # Fetch partners who are NOT yet approved
     pending_partners = Partner.query.filter_by(is_approved=False).order_by(Partner.created_at.desc()).all()
-    
     # Fetch complaints that are still 'Pending'
     active_complaints = Complaint.query.filter_by(status='Pending').order_by(Complaint.created_at.desc()).all()
     
@@ -370,6 +359,10 @@ def admin_panel():
 
 @app.route('/admin/approve-partner/<int:partner_id>', methods=['POST'])
 def approve_partner(partner_id):
+    # Quick security check to prevent unauthorized form submissions
+    if 'user_id' not in session or not User.query.get(session['user_id']).is_admin:
+        return redirect(url_for('index'))
+        
     partner = Partner.query.get_or_404(partner_id)
     partner.is_approved = True
     db.session.commit()
@@ -380,12 +373,15 @@ def approve_partner(partner_id):
 
 @app.route('/admin/resolve-complaint/<int:complaint_id>', methods=['POST'])
 def resolve_complaint(complaint_id):
+    # Quick security check
+    if 'user_id' not in session or not User.query.get(session['user_id']).is_admin:
+        return redirect(url_for('index'))
+        
     complaint = Complaint.query.get_or_404(complaint_id)
     complaint.status = 'Resolved'
     db.session.commit()
     
     flash(f'Complaint regarding "{complaint.subject}" has been marked as resolved.', 'success')
     return redirect(url_for('admin_panel'))
-
 if __name__ == '__main__':
     app.run(debug=True)
