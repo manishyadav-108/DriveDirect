@@ -99,6 +99,37 @@
     <main class="container mx-auto p-4 min-h-screen">
         {% block content %}{% endblock %}
     </main>
+    </main>
 
+    <footer class="bg-slate-900 border-t border-slate-800 pt-10 pb-6 mt-12">
+        <div class="container mx-auto px-4">
+            
+            <div class="flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6 mb-6">
+                <div class="text-xl font-extrabold text-white tracking-wide mb-4 md:mb-0">
+                    DriveDirect<span class="text-blue-600">.</span>
+                </div>
+                
+                <div class="flex flex-wrap justify-center gap-6 text-sm text-slate-400 font-medium">
+                    <a href="#" class="hover:text-indigo-400 transition-colors">Privacy Policy</a>
+                    <a href="#" class="hover:text-indigo-400 transition-colors">Terms of Service</a>
+                    <a href="#" class="hover:text-indigo-400 transition-colors">Partner Agreement</a>
+                    <a href="#" class="hover:text-indigo-400 transition-colors">Support</a>
+                </div>
+            </div>
+
+            <div class="text-center text-xs text-slate-500 font-light">
+                &copy; <span id="currentYear"></span> DriveDirect Premium Rentals. All rights reserved. <br>
+                <span class="opacity-50">Designed for luxury. Built for comfort.</span>
+            </div>
+            
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+
+</body>
+</html>
 </body>
 </html>
