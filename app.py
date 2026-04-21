@@ -4,6 +4,8 @@ from datetime import datetime
 import random
 import os
 from werkzeug.utils import secure_filename
+import smtplib
+from email.mime.text import MIMEText
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_drivedirect_key'
@@ -78,6 +80,8 @@ class Booking(db.Model):
     estimated_fare = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='Pending') # Pending, Confirmed, Cancelled
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    
 # ==========================================
 # ROUTES
 # ==========================================
@@ -123,6 +127,27 @@ def book():
             flash(f'An error occurred: {str(e)}', 'error')
 
     return render_template('book.html')
+
+def send_email_otp(receiver_email, otp):
+    sender_email = "manishyadavsci@gmail.com"  # Put your Gmail here
+    sender_password = "ehhy jctz orhc aerz" # Put your App Password here
+
+    # Format the email
+    msg = MIMEText(f"Welcome to DriveDirect! Your verification OTP is: {otp}")
+    msg['Subject'] = 'DriveDirect - Verify Your Account'
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+
+    try:
+        # Connect to Gmail's server securely
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
 
 # ==========================================
 # DASHBOARD & COMPLAINT ROUTES
@@ -229,27 +254,33 @@ def signup():
         phone = request.form.get('phone')
 
         # Check if user already exists
-        existing_user = User.query.filter((User.email == email) | (User.phone == phone)).first()
-        if existing_user:
-            flash('Email or Phone number already registered. Please login.', 'error')
+        if User.query.filter_by(email=email).first():
+            flash('Email already registered. Please log in.', 'error')
             return redirect(url_for('login'))
 
-        # Generate a 4-digit OTP
+        # 🚨 THIS IS THE CRITICAL MISSING PIECE 🚨
+        # We must save the data temporarily so verify_otp can use it!
+        session['temp_user'] = {
+            'name': name,
+            'email': email,
+            'phone': phone
+        }
+
+        # Generate and save OTP
         otp = str(random.randint(1000, 9999))
-        
-        # Save user details and OTP in session temporarily
-        session['temp_user'] = {'name': name, 'email': email, 'phone': phone}
         session['otp'] = otp
+        
+        # Send the email
+        email_sent = send_email_otp(email, otp)
+        
+        if email_sent:
+            flash('An OTP has been sent to your email address.', 'success')
+            return redirect(url_for('verify_otp'))
+        else:
+            flash('Failed to send OTP email. Please check your console.', 'error')
+            return redirect(url_for('signup'))
 
-        # TODO: In production, integrate Email/SMS API here to send the OTP.
-        # For now, we print it to the terminal so you can test it:
-        print(f"\n{'='*30}")
-        print(f"🔐 TEST OTP FOR {name}: {otp}")
-        print(f"{'='*30}\n")
-
-        flash('OTP has been sent to your email and phone!', 'success')
-        return redirect(url_for('verify_otp'))
-
+    return render_template('signup.html')
     return render_template('signup.html')
 
 @app.route('/verify-otp', methods=['GET', 'POST'])
