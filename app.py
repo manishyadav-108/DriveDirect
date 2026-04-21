@@ -6,6 +6,7 @@ import os
 from werkzeug.utils import secure_filename
 import smtplib
 from email.mime.text import MIMEText
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_drivedirect_key'
@@ -33,6 +34,8 @@ class User(db.Model):
     
     # NEW: Admin security flag (defaults to False for normal users)
     is_admin = db.Column(db.Boolean, default=False) 
+
+    password_hash = db.Column(db.String(256), nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -252,18 +255,18 @@ def signup():
         name = request.form.get('name')
         email = request.form.get('email')
         phone = request.form.get('phone')
+        password = request.form.get('password')
 
         # Check if user already exists
         if User.query.filter_by(email=email).first():
             flash('Email already registered. Please log in.', 'error')
             return redirect(url_for('login'))
-
-        # 🚨 THIS IS THE CRITICAL MISSING PIECE 🚨
-        # We must save the data temporarily so verify_otp can use it!
+        
         session['temp_user'] = {
             'name': name,
             'email': email,
-            'phone': phone
+            'phone': phone,
+            'password': password # <-- SAVE IT HERE
         }
 
         # Generate and save OTP
@@ -281,7 +284,6 @@ def signup():
             return redirect(url_for('signup'))
 
     return render_template('signup.html')
-    return render_template('signup.html')
 
 @app.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
@@ -294,23 +296,24 @@ def verify_otp():
         user_otp = request.form.get('otp')
 
         if user_otp == session.get('otp'):
-            # OTP is correct! Create the user in the database
+            # 1. CREATE the new_user
             user_data = session['temp_user']
             new_user = User(
                 name=user_data['name'],
                 email=user_data['email'],
-                phone=user_data['phone']
+                phone=user_data['phone'],
+                password_hash=user_data['password'] 
             )
             db.session.add(new_user)
             db.session.commit()
 
-            # Clear temporary session data and log them in
+            # 2. USE the new_user (Notice how these are indented directly under the creation step!)
             session.pop('temp_user', None)
             session.pop('otp', None)
             
             session['user_id'] = new_user.id 
             session['user_name'] = new_user.name
-            session['is_admin'] = new_user.is_admin # Keeps admin status secure
+            session['is_admin'] = new_user.is_admin
 
             flash('Account created successfully! Welcome.', 'success')
             return redirect(url_for('index'))
@@ -319,28 +322,26 @@ def verify_otp():
 
     return render_template('verify_otp.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # For simplicity, we'll login via Email and generate an OTP
         email = request.form.get('email')
+        password = request.form.get('password')
+
+        # Find the user by email
         user = User.query.filter_by(email=email).first()
 
-        if user:
-            otp = str(random.randint(1000, 9999))
-            session['login_email'] = email
-            session['otp'] = otp
+        # NEW WAY: Check against the password_hash column!
+        if user and user.password_hash == password:
+            # Login successful! Save data to session
+            session['user_id'] = user.id
+            session['user_name'] = user.name
+            session['is_admin'] = user.is_admin
             
-            # Print to terminal for testing
-            print(f"\n{'='*30}")
-            print(f"🔐 LOGIN OTP FOR {user.name}: {otp}")
-            print(f"{'='*30}\n")
-
-            flash('Login OTP sent to your email.', 'success')
-            return redirect(url_for('verify_login_otp'))
+            flash('Logged in successfully!', 'success')
+            return redirect(url_for('index'))
         else:
-            flash('Email not found. Please sign up.', 'error')
+            flash('Invalid email or password.', 'error')
 
     return render_template('login.html')
 
