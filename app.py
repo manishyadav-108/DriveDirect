@@ -16,7 +16,8 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 # Limits images to 5MB
 # ------------------------------------------
 
 # Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:free@localhost/DriveDirect'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:free@localhost/DriveDirect'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:yourpassword@localhost/yourdatabase')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
