@@ -59,7 +59,12 @@
                     <span class="font-medium text-gray-700">Rent by Duration (Hours/Days)</span>
                 </label>
             </div>
-
+            <select name="vehicle_type" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-blue-500">
+                <option value="" disabled selected>Select a vehicle...</option>
+                <option value="bike">Bike</option>
+                <option value="car">Standard Car (4 Seater)</option>
+                <option value="7_seater">SUV / 7 Seater Car</option>
+            </select>
             <div id="a_to_b_inputs" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Pickup Location (A)</label>
@@ -171,7 +176,6 @@
             finalFare = rates[service][durationType] * durationValue;
             note = `*Calculated for ${durationValue} ${durationType} at ₹${rates[service][durationType]}/${durationType.slice(0,-1)}.`;
         }
-
         // Animate the number change
         animateValue("display_fare", parseInt(document.getElementById('display_fare').innerText), finalFare, 500);
         document.getElementById('calculated_fare').value = finalFare;

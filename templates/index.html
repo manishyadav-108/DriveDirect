@@ -62,6 +62,23 @@
                     <span class="text-lg font-extrabold text-blue-600">₹{{ vehicle.daily_rate }}<span class="text-sm font-normal text-slate-400">/day</span></span>
                 </div>
             </div>
+            <form action="/save_duration" method="POST" class="mt-4">
+    
+    <div class="flex gap-2 mb-3">
+        <input type="number" name="duration_amount" min="1" required placeholder="Qty (e.g. 5)" 
+               class="w-1/2 p-2 text-sm border border-slate-300 rounded focus:ring-blue-500">
+        
+        <select name="duration_unit" required class="w-1/2 p-2 text-sm border border-slate-300 rounded focus:ring-blue-500">
+            <option value="hours">Hours</option>
+            <option value="days">Days</option>
+        </select>
+    </div>
+
+    <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-blue-600 transition-colors">
+        Book Now
+    </button>
+
+</form>
         </div>
         {% endfor %}
     </div>

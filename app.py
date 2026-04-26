@@ -21,6 +21,55 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
+
+# 1. This catches the duration when they click "Book Now" under a car picture
+@app.route('/save_duration', methods=['POST'])
+def save_duration():
+    # Save the duration to the session securely
+    session['duration_amount'] = int(request.form.get('duration_amount'))
+    session['duration_unit'] = request.form.get('duration_unit')
+    
+    # Send them down to the main booking form to pick driver and vehicle type
+    return redirect(url_for('index', _anchor='book-ride'))
+
+
+# 2. This runs when they click "Check Fare" on the main form
+@app.route('/calculate_fare', methods=['POST'])
+def calculate_fare():
+    service_type = request.form.get('service_type')
+    vehicle_type = request.form.get('vehicle_type')
+    
+    # Grab the duration they entered earlier on the fleet card
+    duration_amount = session.get('duration_amount', 1) # Defaults to 1 if missing
+    duration_unit = session.get('duration_unit', 'hours')
+
+    # --- TEMPORARY MOCK DATA (From the 'Be Partner' section) ---
+    fares_from_partner_db = {
+        'bike': {'hours': 50, 'days': 400},
+        'car': {'hours': 150, 'days': 1200},
+        '7_seater': {'hours': 250, 'days': 2000}
+    }
+    
+    base_fare = fares_from_partner_db[vehicle_type][duration_unit]
+    total_amount = base_fare * duration_amount
+
+    if service_type == 'only_driver':
+        driver_hourly_rate = 100
+        driver_daily_rate = 800
+        if duration_unit == 'hours':
+            total_amount = driver_hourly_rate * duration_amount
+        else:
+            total_amount = driver_daily_rate * duration_amount
+
+    # Save to session and go to confirm page
+    session['booking_details'] = {
+        'service_type': service_type,
+        'vehicle_type': vehicle_type,
+        'duration': f"{duration_amount} {duration_unit}",
+        'total_amount': total_amount
+    }
+
+    return render_template('confirm_booking.html', details=session['booking_details'])
 # ==========================================
 # DATABASE MODELS
 # ==========================================
