@@ -505,6 +505,22 @@ def resolve_complaint(complaint_id):
     flash(f'Complaint regarding "{complaint.subject}" has been marked as resolved.', 'success')
     return redirect(url_for('admin_panel'))
 
+@app.route('/make_me_admin')
+def make_me_admin():
+    # 1. Find your exact account in the new live database
+    me = User.query.filter_by(email='manishyadavsci@gmail.com').first()
+    
+    if me:
+        # 2. Give yourself the master key
+        me.is_admin = True
+        db.session.commit()
+        
+        # 3. Force update your current browser session
+        session['is_admin'] = True 
+        
+        return "<h1>SUCCESS!</h1><p>You are now an Admin. Go back to the homepage!</p>"
+    else:
+        return "<h1>ERROR!</h1><p>I couldn't find your email. Did you actually click 'Sign Up' on the live website yet?</p>"
 # ... all your routes and classes are above this ...
 
 # 1. This goes at the bottom so Python knows about all your tables before building them!
