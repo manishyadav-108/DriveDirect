@@ -21,9 +21,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Put this somewhere after db is defined, but before your routes!
-with app.app_context():
-    db.create_all()
+
 
 # 1. This catches the duration when they click "Book Now" under a car picture
 @app.route('/save_duration', methods=['POST'])
@@ -506,5 +504,13 @@ def resolve_complaint(complaint_id):
     
     flash(f'Complaint regarding "{complaint.subject}" has been marked as resolved.', 'success')
     return redirect(url_for('admin_panel'))
+
+# ... all your routes and classes are above this ...
+
+# 1. This goes at the bottom so Python knows about all your tables before building them!
+with app.app_context():
+    db.create_all()
+
+# 2. This is the normal bottom of a Flask file
 if __name__ == '__main__':
     app.run(debug=True)
