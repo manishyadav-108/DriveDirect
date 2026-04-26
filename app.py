@@ -21,7 +21,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-
+# Put this somewhere after db is defined, but before your routes!
+with app.app_context():
+    db.create_all()
 
 # 1. This catches the duration when they click "Book Now" under a car picture
 @app.route('/save_duration', methods=['POST'])
