@@ -135,5 +135,46 @@
                 <p class="text-slate-500 font-medium">No pending ride requests at the moment.</p>
             </div>
         {% endif %}
+        <div class="mt-8 bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-slate-800">Recent Bookings</h3>
+        <span class="text-sm text-slate-500">Showing last 5</span>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-100 text-xs uppercase text-slate-600 tracking-wider">
+                    <th class="px-6 py-4 border-b border-slate-200">ID</th>
+                    <th class="px-6 py-4 border-b border-slate-200">Service</th>
+                    <th class="px-6 py-4 border-b border-slate-200">Vehicle</th>
+                    <th class="px-6 py-4 border-b border-slate-200">Duration</th>
+                    <th class="px-6 py-4 border-b border-slate-200">Amount</th>
+                    <th class="px-6 py-4 border-b border-slate-200">Status</th>
+                </tr>
+            </thead>
+            <tbody class="text-sm text-slate-700">
+                {% for booking in bookings %}
+                <tr class="hover:bg-blue-50 border-b border-slate-100">
+                    <td class="px-6 py-4 font-semibold text-slate-900">#{{ booking.id }}</td>
+                    <td class="px-6 py-4 capitalize">{{ booking.service_type.replace('_', ' ') }}</td>
+                    <td class="px-6 py-4 capitalize">{{ booking.vehicle_type }}</td>
+                    <td class="px-6 py-4">{{ booking.duration }}</td>
+                    <td class="px-6 py-4 font-bold text-green-600">₹{{ booking.total_amount }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">Pending</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-slate-500 italic">
+                        No bookings found yet. Wait for customers!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
     </div>
 {% endblock %}
