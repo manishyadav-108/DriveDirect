@@ -307,9 +307,14 @@ def signup():
         phone = request.form.get('phone')
         password = request.form.get('password')
 
-        # Check if user already exists
-        if User.query.filter_by(email=email).first():
-            flash('Email already registered. Please log in.', 'error')
+
+        # THE FIX: Check if the email or phone already exists before doing anything else
+        existing_user = User.query.filter(
+            (User.email == email) | (User.phone == phone)
+        ).first()
+
+        if existing_user:
+            flash('An account with this email or phone number already exists. Please log in.', 'error')
             return redirect(url_for('login'))
         
         session['temp_user'] = {
@@ -394,6 +399,21 @@ def login():
             flash('Invalid email or password.', 'error')
 
     return render_template('login.html')
+
+@app.route('/rescue_my_account')
+def rescue_my_account():
+    # Find your master account in the live database
+    me = User.query.filter_by(email='manishyadavsci@gmail.com').first()
+    
+    if me:
+        # Overwrite whatever the old password was with a new, simple one.
+        # (Remember, we are still saving as plain text in the password_hash column for now)
+        me.password_hash = "free" 
+        db.session.commit()
+        
+        return "<h1>ACCOUNT RESCUED!</h1><p>Your password is now exactly: <b>admin123</b>. Go log in!</p>"
+    else:
+        return "<h1>ERROR!</h1><p>I couldn't find your email in the database.</p>"
 
 @app.route('/verify-login-otp', methods=['GET', 'POST'])
 def verify_login_otp():
